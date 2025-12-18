@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f3460">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>StreamVerse App</title>
+    
+    <!-- Tailwind & Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top right, #1a1a2e, #16213e, #0f3460);
+            min-height: 100vh;
+            color: white;
+            padding-bottom: 80px; /* Space for FAB */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Glassmorphism */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: all 0.3s ease;
+        }
+        
+        /* Video Wrapper */
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 */
+            overflow: hidden;
+            border-radius: 12px;
+            background: #000;
+        }
+
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            border: none;
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* Floating Action Button (FAB) */
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 60px;
+            height: 60px;
+            background: #00d4ff;
+            color: #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 25px rgba(0, 212, 255, 0.4);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 50;
+            transition: transform 0.2s;
+        }
+        .fab:active { transform: scale(0.9); }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Header -->
+    <header class="max-w-7xl mx-auto mb-8 flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500">
+                STREAM<span class="font-light text-white">VERSE</span>
+            </h1>
+        </div>
+        <div onclick="clearData()" class="text-xs text-gray-500 cursor-pointer hover:text-red-400">
+            Reset App
+        </div>
+    </header>
+
+    <!-- Video Grid -->
+    <div id="app-grid" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Content loads here -->
+    </div>
+
+    <!-- Floating Add Button -->
+    <button onclick="openModal()" class="fab">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Add Video Modal -->
+    <div id="addModal" class="modal">
+        <div class="glass-card p-6 rounded-2xl w-full max-w-md bg-[#16213e]">
+            <h3 class="text-xl font-bold mb-4">Add New Stream</h3>
+            <input type="text" id="videoUrlInput" placeholder="Paste YouTube Link Here..." 
+                   class="w-full p-3 rounded-lg bg-black/40 border border-gray-600 text-white focus:border-cyan-400 outline-none mb-4">
+            
+            <div class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 py-2 rounded-lg bg-gray-700 hover:bg-gray-600">Cancel</button>
+                <button onclick="addNewVideo()" class="flex-1 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Initial Data (Defaults)
+        const defaultLinks = [
+            "https://www.youtube.com/live/txsRX-ItppU",
+            "https://www.youtube.com/live/pGEJ-u4N9_Y",
+            "https://www.youtube.com/live/6o6-CnepRMo",
+            "https://www.youtube.com/live/icCS6JlhByQ",
+            "https://www.youtube.com/live/eAw5cg5jYAA",
+            "https://www.youtube.com/live/rYKAuG8Tf6c",
+            "https://www.youtube.com/live/2fBExItbI7Y",
+            "https://www.youtube.com/live/1bZ_jerD4zA",
+            "https://www.youtube.com/live/CvOGebyXv8A",
+            "https://www.youtube.com/live/BN3jskNdugs",
+            "https://www.youtube.com/live/hkU0uWPltqw",
+            "https://www.youtube.com/live/dsrGztEPXao",
+            "https://www.youtube.com/live/d0_AXPVbxGM",
+            "https://www.youtube.com/live/ha8_EmC-Nd0",
+            "https://www.youtube.com/live/J-47JqkEMuo",
+            "https://www.youtube.com/live/JARdk5WqG7U",
+            "https://www.youtube.com/live/uYXqCZHO0WY",
+            "https://www.youtube.com/live/MvmQx-hhdtE",
+            "https://www.youtube.com/live/RZghLOPpAGg",
+            "https://www.youtube.com/live/5HXmCCgtWBU",
+            "https://www.youtube.com/live/yWXlBwKrLiA",
+            "https://www.youtube.com/live/ScZlPuw9cFg",
+            "https://www.youtube.com/live/NIpHcuyO58I",
+            "https://www.youtube.com/live/Fo-mpcf0Ipo",
+            "https://www.youtube.com/live/FqIgxHg4EOA",
+            "https://www.youtube.com/live/b75QdLyN2mU",
+            "https://www.youtube.com/live/iYtUzxVHSEk",
+            "https://www.youtube.com/live/5m780Cx9ohw",
+            "https://www.youtube.com/live/xUoxn-R4NGI",
+            "https://www.youtube.com/live/bExnUexoVug"
+        ];
+
+        // 2. Load Data from LocalStorage or use Defaults
+        let myVideos = JSON.parse(localStorage.getItem('streamVerseVideos')) || defaultLinks;
+
+        const grid = document.getElementById('app-grid');
+        const rotationState = {};
+
+        // 3. Helper: Get ID from URL
+        function getID(url) {
+            try {
+                if (url.includes('/live/')) return url.split('/live/')[1].split('?')[0];
+                if (url.includes('v=')) return url.split('v=')[1].split('&')[0];
+                if (url.includes('youtu.be/')) return url.split('youtu.be/')[1].split('?')[0];
+            } catch(e) { return null; }
+            return null;
+        }
+
+        // 4. Render App
+        function render() {
+            grid.innerHTML = '';
+            const uniqueIds = [...new Set(myVideos.map(getID).filter(id => id))];
+
+            uniqueIds.forEach((id, index) => {
+                const card = `
+                    <div class="glass-card rounded-2xl p-3 flex flex-col gap-3 relative group">
+                        <!-- Delete Button (Visible on Hover/Touch) -->
+                        <button onclick="removeVideo('${myVideos[index]}')" class="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full text-xs shadow-lg z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fas fa-times"></i>
+                        </button>
+
+                        <div class="video-wrapper shadow-lg">
+                            <iframe 
+                                id="frame-${id}"
+                                src="https://www.youtube.com/embed/${id}?enablejsapi=1" 
+                                title="Stream"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+
+                        <div class="flex justify-between items-center px-1">
+                            <span class="text-xs font-mono text-cyan-400">CAM-${index + 1}</span>
+                            <div class="flex gap-2">
+                                <button onclick="rotateVideo('${id}')" class="bg-white/10 hover:bg-cyan-400 hover:text-black w-8 h-8 rounded-full flex items-center justify-center transition text-sm">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <button onclick="resetVideo('${id}')" class="bg-white/10 hover:bg-red-400 hover:text-black w-8 h-8 rounded-full flex items-center justify-center transition text-sm">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += card;
+            });
+        }
+
+        // 5. Add New Video Logic
+        function addNewVideo() {
+            const input = document.getElementById('videoUrlInput');
+            const url = input.value.trim();
+            
+            if (url && getID(url)) {
+                myVideos.unshift(url); // Add to top
+                saveAndRender();
+                input.value = '';
+                closeModal();
+            } else {
+                alert('Invalid YouTube URL!');
+            }
+        }
+
+        // 6. Remove Video Logic
+        function removeVideo(urlToRemove) {
+            if(confirm('Remove this video?')) {
+                myVideos = myVideos.filter(url => url !== urlToRemove);
+                saveAndRender();
+            }
+        }
+
+        // 7. Save to Storage
+        function saveAndRender() {
+            localStorage.setItem('streamVerseVideos', JSON.stringify(myVideos));
+            render();
+        }
+
+        function clearData() {
+            if(confirm('Reset to default videos?')) {
+                localStorage.removeItem('streamVerseVideos');
+                myVideos = defaultLinks;
+                render();
+            }
+        }
+
+        // Modal Controls
+        function openModal() { document.getElementById('addModal').classList.add('active'); }
+        function closeModal() { document.getElementById('addModal').classList.remove('active'); }
+
+        // Rotation Logic
+        function rotateVideo(id) {
+            if (!rotationState[id]) rotationState[id] = 0;
+            rotationState[id] += 90;
+            const iframe = document.getElementById(`frame-${id}`);
+            let scale = 1;
+            if ((rotationState[id] / 90) % 2 !== 0) scale = 0.6; 
+            iframe.style.transform = `rotate(${rotationState[id]}deg) scale(${scale})`;
+        }
+
+        function resetVideo(id) {
+            rotationState[id] = 0;
+            const iframe = document.getElementById(`frame-${id}`);
+            iframe.style.transform = `rotate(0deg) scale(1)`;
+        }
+
+        // Initial Render
+        render();
+
+    </script>
+</body>
+</html>
+
+
